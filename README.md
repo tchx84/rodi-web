@@ -4,8 +4,8 @@ A web-service interface for RoDi (Robot Didáctico inalámbrico).
 
 Testing
 -------
-At the moment one a small example is implemented, which is to make a led blink
-given a blinking rate in seconds.
+At the moment only a small example is implemented, which is to make a led blink
+given a blinking rate in milliseconds.
 
 To test it from a browser:
 
