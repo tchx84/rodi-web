@@ -17,7 +17,12 @@
   USA
  */
 
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 256
+
+struct Params {
+   char key[BUFFER_SIZE];
+   int value;
+};
 
 int index;
 char inChar;
@@ -31,14 +36,61 @@ char outResponse[] =
 "\r\n"
 "{}";
 
+int ledLastState;
+int ledLastRate;
+long ledLastChanged;
+
 void setup()
 {
   index = 0;
+  ledLastState = LOW;
+  ledLastRate = 0;
+  ledLastChanged = millis();
   Serial.begin(57600);
+  pinMode(13, OUTPUT);
 }
 
 int is_header(char line[]){
     return (strstr(line, "GET") != NULL || strstr(line, "POST") != NULL);
+}
+
+// ie., GET /led/500/ HTTP/1.1
+struct Params get_params(char* line) {
+  struct Params params;
+  char tkey[BUFFER_SIZE];
+  char tvalue[BUFFER_SIZE];
+
+  int filled = sscanf(line, "%*[^/]%*c%[^/]%*c%[^/]", tkey, tvalue);
+
+  if (filled != EOF) {
+    strcpy(params.key, tkey);
+    params.value = atoi(tvalue);
+  } else {
+    strcpy(params.key, "unknown");
+    params.value = -1;
+  }
+
+  return params;
+}
+
+// It is extremely important to make non-blocking
+void do_blink(){
+
+    if (ledLastRate == 0) {
+      ledLastState = LOW;
+      digitalWrite(13, ledLastState);
+    } else {
+      long now = millis();
+      if ((now - ledLastChanged) > ledLastRate) {
+        if (ledLastState == LOW) {
+          ledLastState = HIGH;
+        } else {
+          ledLastState = LOW;
+        }
+        digitalWrite(13, ledLastState);
+        ledLastChanged = now;
+      }
+    }
 }
 
 void loop()
@@ -60,8 +112,16 @@ void loop()
     }
 
     if (inChar == '\n' && is_header(inLine)) {
-      // XXX parse_the_header(inLine);
+      struct Params params = get_params(inLine);
+
+      // first example is to make led to blink
+      if (strcmp(params.key, "led") == 0) {
+        ledLastRate = params.value;
+      }
+
       Serial.print(outResponse);
     }
   }
+
+  do_blink();
 }
