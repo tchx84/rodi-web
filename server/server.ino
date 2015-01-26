@@ -17,21 +17,32 @@
   USA
  */
 
-#define BUFFER_SIZE 256
+#include <Servo.h>
 
-struct Params {
-   char key[BUFFER_SIZE];
-   int value;
+#define SERVER_BUFFER_BIG 256
+#define SERVER_BUFFER_SMALL 32
+
+#define SENSOR_RIGHT_PIN A6
+#define SENSOR_LEFT_PIN A3
+
+#define SERVO_RIGHT_PIN 6
+#define SERVO_LEFT_PIN 5
+#define SERVO_STOP 99
+
+#define ACTION_BLINK "blink"
+#define ACTION_SENSE "sense"
+#define ACTION_MOVE "move"
+
+struct RequestParams {
+   char key[SERVER_BUFFER_SMALL];
+   int value1;
+   int value2;
 };
 
-int index;
-char inChar;
-char inLine[BUFFER_SIZE];
-
-int outResponsePending;
-char outResponseBuffer[BUFFER_SIZE];
-char outResponseResult[BUFFER_SIZE];
-char outResponseTemplate[] =
+int server_input_index;
+char server_input;
+char server_buffer[SERVER_BUFFER_SMALL];
+char server_response_template[] =
 "HTTP/1.1 200 OK\r\n"
 "Connection: close\r\n"
 "Content-Type: application/json\r\n"
@@ -39,73 +50,80 @@ char outResponseTemplate[] =
 "\r\n"
 "%s";
 
-int ledLastState;
-int ledLastRate;
-long ledLastChanged;
+int blink_last_state;
+int blink_last_rate;
+long blink_last_changed;
+
+Servo move_servo_left;
+Servo move_servo_right;
 
 void setup()
-{
-  index = 0;
-  ledLastState = LOW;
-  ledLastRate = 0;
-  ledLastChanged = millis();
-  outResponsePending = 0;
-  Serial.begin(57600);
+{  
+  blink_last_state = LOW;
+  blink_last_rate = 0;
+  blink_last_changed = millis();
   pinMode(13, OUTPUT);
+  
+  move_servo_left.attach(SERVO_LEFT_PIN);
+  move_servo_left.write(SERVO_STOP);
+  move_servo_right.attach(SERVO_RIGHT_PIN);
+  move_servo_right.write(SERVO_STOP);
+  
+  server_input_index = 0;
+  Serial.begin(57600);
 }
 
-int is_header(char line[]){
-    return (strstr(line, "GET") != NULL || strstr(line, "POST") != NULL);
+int server_is_header(char* line){
+    return (strstr(line, "GET") != NULL);
 }
 
-// ie., GET /led/500/ HTTP/1.1
-struct Params get_params(char* line) {
-  struct Params params;
-  char tkey[BUFFER_SIZE];
-  char tvalue[BUFFER_SIZE];
+struct RequestParams server_get_params(char* line) {
+  struct RequestParams request_params;
+  char tkey[SERVER_BUFFER_SMALL];
+  char tvalue1[SERVER_BUFFER_SMALL];
+  char tvalue2[SERVER_BUFFER_SMALL];
 
-  int filled = sscanf(line, "%*[^/]%*c%[^/]%*c%[^/]", tkey, tvalue);
+  int filled = sscanf(line, "%*[^/]%*c%[^/]%*c%[^/]%*c%[^/]", tkey, tvalue1, tvalue2);
 
   if (filled != EOF) {
-    strcpy(params.key, tkey);
-    params.value = atoi(tvalue);
+    strcpy(request_params.key, tkey);
+    request_params.value1 = atoi(tvalue1);
+    request_params.value2 = atoi(tvalue2);
   } else {
-    strcpy(params.key, "unknown");
-    params.value = -1;
+    strcpy(request_params.key, "unknown");
+    request_params.value1 = -1;
+    request_params.value2 = -1;
   }
 
-  return params;
+  return request_params;
 }
 
-// It is extremely important to make non-blocking
-void do_blink(){
+void server_set_response(char* content) {
+  char response[SERVER_BUFFER_BIG];
+  int count = strlen(content);
+  
+  sprintf(response, server_response_template, count, content);
+  
+  Serial.print(response);
+}
 
-    if (ledLastRate == 0) {
-      ledLastState = LOW;
-      digitalWrite(13, ledLastState);
+void blink_loop(){
+
+    if (blink_last_rate == 0) {
+      blink_last_state = LOW;
+      digitalWrite(13, blink_last_state);
     } else {
       long now = millis();
-      if ((now - ledLastChanged) > ledLastRate) {
-        if (ledLastState == LOW) {
-          ledLastState = HIGH;
+      if ((now - blink_last_changed) > blink_last_rate) {
+        if (blink_last_state == LOW) {
+          blink_last_state = HIGH;
         } else {
-          ledLastState = LOW;
+          blink_last_state = LOW;
         }
-        digitalWrite(13, ledLastState);
-        ledLastChanged = now;
+        digitalWrite(13, blink_last_state);
+        blink_last_changed = now;
       }
     }
-}
-
-void do_response() {
-  if (!outResponsePending) {
-    return;
-  }
-  outResponsePending = 0;
-
-  int count = strlen(outResponseBuffer);
-  sprintf(outResponseResult, outResponseTemplate, count, outResponseBuffer);
-  Serial.print(outResponseResult);
 }
 
 void loop()
@@ -113,39 +131,43 @@ void loop()
   if (Serial.available() > 0) {
 
     // Do not overflow buffer
-    if (index >= BUFFER_SIZE) {
-      index = 0;
+    if (server_input_index >= SERVER_BUFFER_BIG) {
+      server_input_index = 0;
     }
 
-    inChar = Serial.read();
+    server_input = Serial.read();
 
-    if (inChar == '\n') {
-      inLine[index] = '\0';
-      index = 0;
+    if (server_input == '\n') {
+      server_buffer[server_input_index] = '\0';
+      server_input_index = 0;
     } else {
-      inLine[index++] = inChar;
+      server_buffer[server_input_index++] = server_input;
     }
 
-    if (inChar == '\n' && is_header(inLine)) {
-      struct Params params = get_params(inLine);
+    if (server_input == '\n' && server_is_header(server_buffer)) {
+      struct RequestParams request_params = server_get_params(server_buffer);
 
-      // first example is to make led to blink
-      if (strcmp(params.key, "led") == 0) {
-        ledLastRate = params.value;
-        strcpy(outResponseBuffer, "");
+      if (strcmp(request_params.key, ACTION_BLINK) == 0) {
+        blink_last_rate = request_params.value1;
+        server_set_response("");
       }
 
-      //second example is to read from light sensors
-      if (strcmp(params.key, "sensors") == 0) {
-        int sensorRightState = analogRead(A6);
-        int sensorLeftState = analogRead(A3);
-        sprintf(outResponseBuffer, "[%d, %d]", sensorRightState, sensorLeftState);
+      if (strcmp(request_params.key, ACTION_SENSE) == 0) {
+        int sensorLeftState = analogRead(SENSOR_LEFT_PIN);
+        int sensorRightState = analogRead(SENSOR_RIGHT_PIN);
+        
+        char content[SERVER_BUFFER_SMALL];
+        sprintf(content, "[%d, %d]", sensorLeftState, sensorRightState);
+        server_set_response(content);
       }
 
-      outResponsePending = 1;
+      if (strcmp(request_params.key, ACTION_MOVE) == 0 ){
+        move_servo_left.write(request_params.value1);
+        move_servo_right.write(request_params.value2);
+        server_set_response("");
+      }
     }
   }
 
-  do_blink();
-  do_response();
+  blink_loop();
 }
