@@ -28,6 +28,7 @@ int index;
 char inChar;
 char inLine[BUFFER_SIZE];
 
+int outResponsePending;
 char outResponse[] =
 "HTTP/1.1 200 OK\r\n"
 "Connection: close\r\n"
@@ -46,6 +47,7 @@ void setup()
   ledLastState = LOW;
   ledLastRate = 0;
   ledLastChanged = millis();
+  outResponsePending = 0;
   Serial.begin(57600);
   pinMode(13, OUTPUT);
 }
@@ -93,6 +95,14 @@ void do_blink(){
     }
 }
 
+void do_response() {
+  if (!outResponsePending) {
+    return;
+  }
+  outResponsePending = 0;
+  Serial.print(outResponse);
+}
+
 void loop()
 {
   if (Serial.available() > 0) {
@@ -119,9 +129,10 @@ void loop()
         ledLastRate = params.value;
       }
 
-      Serial.print(outResponse);
+      outResponsePending = 1;
     }
   }
 
   do_blink();
+  do_response();
 }
