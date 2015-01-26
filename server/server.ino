@@ -135,6 +135,13 @@ void loop()
         strcpy(outResponseBuffer, "");
       }
 
+      //second example is to read from light sensors
+      if (strcmp(params.key, "sensors") == 0) {
+        int sensorRightState = analogRead(A6);
+        int sensorLeftState = analogRead(A3);
+        sprintf(outResponseBuffer, "right: %d, left: %d", sensorRightState, sensorLeftState);
+      }
+
       outResponsePending = 1;
     }
   }
