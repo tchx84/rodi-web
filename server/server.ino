@@ -37,7 +37,7 @@ char outResponseTemplate[] =
 "Content-Type: application/json\r\n"
 "Content-Length: %d\r\n"
 "\r\n"
-"{%s}";
+"%s";
 
 int ledLastState;
 int ledLastRate;
@@ -103,7 +103,7 @@ void do_response() {
   }
   outResponsePending = 0;
 
-  int count = strlen(outResponseBuffer) + 2;
+  int count = strlen(outResponseBuffer);
   sprintf(outResponseResult, outResponseTemplate, count, outResponseBuffer);
   Serial.print(outResponseResult);
 }
@@ -139,7 +139,7 @@ void loop()
       if (strcmp(params.key, "sensors") == 0) {
         int sensorRightState = analogRead(A6);
         int sensorLeftState = analogRead(A3);
-        sprintf(outResponseBuffer, "right: %d, left: %d", sensorRightState, sensorLeftState);
+        sprintf(outResponseBuffer, "[%d, %d]", sensorRightState, sensorLeftState);
       }
 
       outResponsePending = 1;
