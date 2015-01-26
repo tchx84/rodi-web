@@ -29,13 +29,15 @@ char inChar;
 char inLine[BUFFER_SIZE];
 
 int outResponsePending;
-char outResponse[] =
+char outResponseBuffer[BUFFER_SIZE];
+char outResponseResult[BUFFER_SIZE];
+char outResponseTemplate[] =
 "HTTP/1.1 200 OK\r\n"
 "Connection: close\r\n"
 "Content-Type: application/json\r\n"
-"Content-Length: 2\r\n"
+"Content-Length: %d\r\n"
 "\r\n"
-"{}";
+"{%s}";
 
 int ledLastState;
 int ledLastRate;
@@ -100,7 +102,10 @@ void do_response() {
     return;
   }
   outResponsePending = 0;
-  Serial.print(outResponse);
+
+  int count = strlen(outResponseBuffer) + 2;
+  sprintf(outResponseResult, outResponseTemplate, count, outResponseBuffer);
+  Serial.print(outResponseResult);
 }
 
 void loop()
@@ -127,6 +132,7 @@ void loop()
       // first example is to make led to blink
       if (strcmp(params.key, "led") == 0) {
         ledLastRate = params.value;
+        strcpy(outResponseBuffer, "");
       }
 
       outResponsePending = 1;
