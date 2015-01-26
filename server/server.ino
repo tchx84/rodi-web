@@ -19,19 +19,19 @@
 
 #define BUFFER_SIZE 256
 
-struct Params {
+struct ServerParams {
    char key[BUFFER_SIZE];
    int value;
 };
 
-int index;
-char inChar;
-char inLine[BUFFER_SIZE];
+int server_input_index;
+char server_input;
+char server_buffer[BUFFER_SIZE];
 
-int outResponsePending;
-char outResponseBuffer[BUFFER_SIZE];
-char outResponseResult[BUFFER_SIZE];
-char outResponseTemplate[] =
+int server_response_pending;
+char server_response_buffer[BUFFER_SIZE];
+char server_response[BUFFER_SIZE];
+char server_response_template[] =
 "HTTP/1.1 200 OK\r\n"
 "Connection: close\r\n"
 "Content-Type: application/json\r\n"
@@ -39,17 +39,17 @@ char outResponseTemplate[] =
 "\r\n"
 "%s";
 
-int ledLastState;
-int ledLastRate;
-long ledLastChanged;
+int blink_last_state;
+int blink_last_rate;
+long blink_last_changed;
 
 void setup()
 {
-  index = 0;
-  ledLastState = LOW;
-  ledLastRate = 0;
-  ledLastChanged = millis();
-  outResponsePending = 0;
+  server_input_index = 0;
+  blink_last_state = LOW;
+  blink_last_rate = 0;
+  blink_last_changed = millis();
+  server_response_pending = 0;
   Serial.begin(57600);
   pinMode(13, OUTPUT);
 }
@@ -59,8 +59,8 @@ int is_header(char line[]){
 }
 
 // ie., GET /led/500/ HTTP/1.1
-struct Params get_params(char* line) {
-  struct Params params;
+struct ServerParams get_params(char* line) {
+  struct ServerParams params;
   char tkey[BUFFER_SIZE];
   char tvalue[BUFFER_SIZE];
 
@@ -78,34 +78,34 @@ struct Params get_params(char* line) {
 }
 
 // It is extremely important to make non-blocking
-void do_blink(){
+void blink_do_loop(){
 
-    if (ledLastRate == 0) {
-      ledLastState = LOW;
-      digitalWrite(13, ledLastState);
+    if (blink_last_rate == 0) {
+      blink_last_state = LOW;
+      digitalWrite(13, blink_last_state);
     } else {
       long now = millis();
-      if ((now - ledLastChanged) > ledLastRate) {
-        if (ledLastState == LOW) {
-          ledLastState = HIGH;
+      if ((now - blink_last_changed) > blink_last_rate) {
+        if (blink_last_state == LOW) {
+          blink_last_state = HIGH;
         } else {
-          ledLastState = LOW;
+          blink_last_state = LOW;
         }
-        digitalWrite(13, ledLastState);
-        ledLastChanged = now;
+        digitalWrite(13, blink_last_state);
+        blink_last_changed = now;
       }
     }
 }
 
-void do_response() {
-  if (!outResponsePending) {
+void server_do_response() {
+  if (!server_response_pending) {
     return;
   }
-  outResponsePending = 0;
+  server_response_pending = 0;
 
-  int count = strlen(outResponseBuffer);
-  sprintf(outResponseResult, outResponseTemplate, count, outResponseBuffer);
-  Serial.print(outResponseResult);
+  int count = strlen(server_response_buffer);
+  sprintf(server_response, server_response_template, count, server_response_buffer);
+  Serial.print(server_response);
 }
 
 void loop()
@@ -113,39 +113,39 @@ void loop()
   if (Serial.available() > 0) {
 
     // Do not overflow buffer
-    if (index >= BUFFER_SIZE) {
-      index = 0;
+    if (server_input_index >= BUFFER_SIZE) {
+      server_input_index = 0;
     }
 
-    inChar = Serial.read();
+    server_input = Serial.read();
 
-    if (inChar == '\n') {
-      inLine[index] = '\0';
-      index = 0;
+    if (server_input == '\n') {
+      server_buffer[server_input_index] = '\0';
+      server_input_index = 0;
     } else {
-      inLine[index++] = inChar;
+      server_buffer[server_input_index++] = server_input;
     }
 
-    if (inChar == '\n' && is_header(inLine)) {
-      struct Params params = get_params(inLine);
+    if (server_input == '\n' && is_header(server_buffer)) {
+      struct ServerParams params = get_params(server_buffer);
 
       // first example is to make led to blink
       if (strcmp(params.key, "led") == 0) {
-        ledLastRate = params.value;
-        strcpy(outResponseBuffer, "");
+        blink_last_rate = params.value;
+        strcpy(server_response_buffer, "");
       }
 
       //second example is to read from light sensors
       if (strcmp(params.key, "sensors") == 0) {
         int sensorRightState = analogRead(A6);
         int sensorLeftState = analogRead(A3);
-        sprintf(outResponseBuffer, "[%d, %d]", sensorRightState, sensorLeftState);
+        sprintf(server_response_buffer, "[%d, %d]", sensorRightState, sensorLeftState);
       }
 
-      outResponsePending = 1;
+      server_response_pending = 1;
     }
   }
 
-  do_blink();
-  do_response();
+  blink_do_loop();
+  server_do_response();
 }
