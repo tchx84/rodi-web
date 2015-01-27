@@ -47,7 +47,7 @@ struct RequestParams {
 
 int server_input_index;
 char server_input;
-char server_buffer[SERVER_BUFFER_SMALL];
+char server_buffer[SERVER_BUFFER_BIG];
 char server_response_template[] =
 "HTTP/1.1 %d %s\r\n"
 "Connection: close\r\n"
