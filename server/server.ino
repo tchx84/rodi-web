@@ -29,6 +29,8 @@
 #define SERVO_LEFT_PIN 5
 #define SERVO_STOP 99
 
+#define SERVER_BAUD 57600
+
 #define ACTION_BLINK "blink"
 #define ACTION_SENSE "sense"
 #define ACTION_MOVE "move"
@@ -74,7 +76,7 @@ void setup()
   move_servo_right.write(SERVO_STOP);
   
   server_input_index = 0;
-  Serial.begin(57600);
+  Serial.begin(SERVER_BAUD);
 }
 
 int server_is_header(char* line){
