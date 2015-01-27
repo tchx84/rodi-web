@@ -49,12 +49,12 @@ int server_input_index;
 char server_input;
 char server_buffer[SERVER_BUFFER_BIG];
 char server_response_template[] =
-"HTTP/1.1 %d %s\r\n"
-"Connection: close\r\n"
-"Content-Type: application/json\r\n"
-"Content-Length: %d\r\n"
-"Access-Control-Allow-Origin: *\r\n"
-"\r\n"
+"HTTP/1.1 %d %s\n"
+"Connection: close\n"
+"Content-Type: application/json\n"
+"Content-Length: %d\n"
+"Access-Control-Allow-Origin: *\n"
+"\n"
 "%s";
 
 int blink_last_state;
