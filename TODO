@@ -1,5 +1,7 @@
 [X] define protocol for different rodi sensors and actuators.
 [X] implement URL parsing.
 [X] implement blink example.
-[ ] ... well, pretty much everything!
-[ ] Oh, and yeah, if we going serious we should start cleaning things up...
+[X] ... well, pretty much everything!
+[X] Oh, and yeah, if we going serious we should start cleaning things up...
+[ ] add decent comments to the code.
+[ ] implement distance and tone
