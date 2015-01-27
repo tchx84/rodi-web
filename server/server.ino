@@ -32,6 +32,10 @@
 #define ACTION_BLINK "blink"
 #define ACTION_SENSE "sense"
 #define ACTION_MOVE "move"
+#define ACTION_UNKNOWN "unknown"
+
+#define SERVER_RESPONSE_OK(content) server_set_response(200, "OK", content)
+#define SERVER_RESPONSE_BAD() server_set_response(400, "Bad Request", "")
 
 struct RequestParams {
    char key[SERVER_BUFFER_SMALL];
@@ -43,7 +47,7 @@ int server_input_index;
 char server_input;
 char server_buffer[SERVER_BUFFER_SMALL];
 char server_response_template[] =
-"HTTP/1.1 200 OK\r\n"
+"HTTP/1.1 %d %s\r\n"
 "Connection: close\r\n"
 "Content-Type: application/json\r\n"
 "Content-Length: %d\r\n"
@@ -78,10 +82,14 @@ int server_is_header(char* line){
 }
 
 struct RequestParams server_get_params(char* line) {
-  struct RequestParams request_params;
   char tkey[SERVER_BUFFER_SMALL];
   char tvalue1[SERVER_BUFFER_SMALL];
   char tvalue2[SERVER_BUFFER_SMALL];
+
+  struct RequestParams request_params;
+  strcpy(request_params.key, ACTION_UNKNOWN);
+  request_params.value1 = -1;
+  request_params.value2 = -1;
 
   int filled = sscanf(line, "%*[^/]%*c%[^/]%*c%[^/]%*c%[^/]", tkey, tvalue1, tvalue2);
 
@@ -89,20 +97,16 @@ struct RequestParams server_get_params(char* line) {
     strcpy(request_params.key, tkey);
     request_params.value1 = atoi(tvalue1);
     request_params.value2 = atoi(tvalue2);
-  } else {
-    strcpy(request_params.key, "unknown");
-    request_params.value1 = -1;
-    request_params.value2 = -1;
   }
 
   return request_params;
 }
 
-void server_set_response(char* content) {
+void server_set_response(int code, char* message, char* content) {
   char response[SERVER_BUFFER_BIG];
   int count = strlen(content);
   
-  sprintf(response, server_response_template, count, content);
+  sprintf(response, server_response_template, code, message, count, content);
   
   Serial.print(response);
 }
@@ -149,22 +153,23 @@ void loop()
 
       if (strcmp(request_params.key, ACTION_BLINK) == 0) {
         blink_last_rate = request_params.value1;
-        server_set_response("");
-      }
+        SERVER_RESPONSE_OK("");
 
-      if (strcmp(request_params.key, ACTION_SENSE) == 0) {
+      } else if (strcmp(request_params.key, ACTION_SENSE) == 0) {
         int sensorLeftState = analogRead(SENSOR_LEFT_PIN);
         int sensorRightState = analogRead(SENSOR_RIGHT_PIN);
-        
+
         char content[SERVER_BUFFER_SMALL];
         sprintf(content, "[%d, %d]", sensorLeftState, sensorRightState);
-        server_set_response(content);
-      }
+        SERVER_RESPONSE_OK(content);
 
-      if (strcmp(request_params.key, ACTION_MOVE) == 0 ){
+      } else if (strcmp(request_params.key, ACTION_MOVE) == 0 ){
         move_servo_left.write(request_params.value1);
         move_servo_right.write(request_params.value2);
-        server_set_response("");
+        SERVER_RESPONSE_OK("");
+
+      } else {
+        SERVER_RESPONSE_BAD();
       }
     }
   }
