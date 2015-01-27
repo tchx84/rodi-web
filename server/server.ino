@@ -53,6 +53,7 @@ char server_response_template[] =
 "Connection: close\r\n"
 "Content-Type: application/json\r\n"
 "Content-Length: %d\r\n"
+"Access-Control-Allow-Origin: *\r\n"
 "\r\n"
 "%s";
 
