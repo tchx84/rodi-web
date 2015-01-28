@@ -31,12 +31,20 @@
 
 #define SPEAKER_PIN 2
 
+#define SEE_ECHO_PIN A0
+#define SEE_TRIGGER_PIN A2
+#define SEE_SHORT_DELAY 2
+#define SEE_LONG_DELAY 10
+#define SEE_MAX_DISTANCE 100
+#define SEE_INTERNET_MAGIC_NUMBER 58.2
+
 #define SERVER_BAUD 57600
 
 #define ACTION_BLINK "blink"
 #define ACTION_SENSE "sense"
 #define ACTION_MOVE "move"
 #define ACTION_SING "sing"
+#define ACTION_SEE "see"
 #define ACTION_UNKNOWN "unknown"
 
 #define SERVER_RESPONSE_OK(content) server_set_response(200, "OK", content)
@@ -80,6 +88,9 @@ void setup()
   move_servo_right.write(SERVO_STOP);
   
   pinMode(SPEAKER_PIN, OUTPUT);
+
+  pinMode(SEE_TRIGGER_PIN, OUTPUT);
+  pinMode(SEE_ECHO_PIN, INPUT);
 
   server_input_index = 0;
   Serial.begin(SERVER_BAUD);
@@ -138,6 +149,28 @@ void blink_loop(){
     }
 }
 
+long see_distance() {
+  long distance;
+  float duration;
+
+  digitalWrite(SEE_TRIGGER_PIN, LOW);
+  delayMicroseconds(SEE_SHORT_DELAY);
+
+  digitalWrite(SEE_TRIGGER_PIN, HIGH);
+  delayMicroseconds(SEE_LONG_DELAY);
+
+  digitalWrite(SEE_TRIGGER_PIN, LOW);
+  duration = (float) pulseIn(SEE_ECHO_PIN, HIGH);
+
+  distance = duration / SEE_INTERNET_MAGIC_NUMBER;
+
+  if (distance > SEE_MAX_DISTANCE) {
+    distance = SEE_MAX_DISTANCE;
+  }
+
+  return distance;
+}
+
 void loop()
 {
   if (Serial.available() > 0) {
@@ -179,6 +212,11 @@ void loop()
       } else if (strcmp(request_params.key, ACTION_SING) == 0) {
         tone(SPEAKER_PIN, request_params.value1, request_params.value2);
         SERVER_RESPONSE_OK("");
+
+      } else if (strcmp(request_params.key, ACTION_SEE) == 0) {
+        char content[SERVER_BUFFER_SMALL];
+        sprintf(content, "%ld", see_distance());
+        SERVER_RESPONSE_OK(content);
 
       } else {
         SERVER_RESPONSE_BAD();
