@@ -51,6 +51,7 @@
 
 #define SERVER_RESPONSE_OK(content) server_set_response(content)
 #define SERVER_RESPONSE_BAD() Serial.print(server_response_template_bad)
+#define SERVER_IS_GET(line) (line[0] == 'G' && line[1] == 'E' && line[2] == 'T')
 
 struct RequestParams {
    char key[SERVER_BUFFER_SMALL];
@@ -110,10 +111,6 @@ void setup()
 
   server_input_index = 0;
   Serial.begin(SERVER_BAUD);
-}
-
-int server_is_header(char* line){
-    return (strstr(line, "GET") != NULL);
 }
 
 struct RequestParams server_get_params(char* line) {
@@ -183,7 +180,7 @@ void loop()
       server_buffer[server_input_index++] = server_input;
     }
 
-    if (server_input == '\n' && server_is_header(server_buffer)) {
+    if (server_input == '\n' && server_input_index > 3 && SERVER_IS_GET(server_buffer)) {
       struct RequestParams request_params = server_get_params(server_buffer);
 
       if (strcmp(request_params.key, ACTION_BLINK) == 0) {
