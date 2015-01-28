@@ -42,19 +42,19 @@
 
 #define SERVER_BAUD 57600
 
-#define ACTION_BLINK "blink"
-#define ACTION_SENSE "sense"
-#define ACTION_MOVE "move"
-#define ACTION_SING "sing"
-#define ACTION_SEE "see"
-#define ACTION_UNKNOWN "unknown"
+#define ACTION_BLINK 0
+#define ACTION_SENSE 1
+#define ACTION_MOVE 2
+#define ACTION_SING 3
+#define ACTION_SEE 4
+#define ACTION_UNKNOWN -1
 
 #define SERVER_RESPONSE_OK(content) server_set_response(content)
 #define SERVER_RESPONSE_BAD() Serial.print(server_response_template_bad)
 #define SERVER_IS_GET(line) (line[0] == 'G' && line[1] == 'E' && line[2] == 'T')
 
 struct RequestParams {
-   char key[SERVER_BUFFER_SMALL];
+   int action;
    int value1;
    int value2;
 };
@@ -114,19 +114,19 @@ void setup()
 }
 
 struct RequestParams server_get_params(char* line) {
-  char tkey[SERVER_BUFFER_SMALL];
+  char taction[SERVER_BUFFER_SMALL];
   char tvalue1[SERVER_BUFFER_SMALL];
   char tvalue2[SERVER_BUFFER_SMALL];
 
   struct RequestParams request_params;
-  strcpy(request_params.key, ACTION_UNKNOWN);
+  request_params.action = -1;
   request_params.value1 = -1;
   request_params.value2 = -1;
 
-  int filled = sscanf(line, "%*[^/]%*c%[^/]%*c%[^/]%*c%[^/]", tkey, tvalue1, tvalue2);
+  int filled = sscanf(line, "%*[^/]%*c%[^/]%*c%[^/]%*c%[^/]", taction, tvalue1, tvalue2);
 
   if (filled != EOF) {
-    strcpy(request_params.key, tkey);
+    request_params.action = atoi(taction);
     request_params.value1 = atoi(tvalue1);
     request_params.value2 = atoi(tvalue2);
   }
@@ -183,46 +183,55 @@ void loop()
     if (server_input == '\n' && server_input_index > 3 && SERVER_IS_GET(server_buffer)) {
       struct RequestParams request_params = server_get_params(server_buffer);
 
-      if (strcmp(request_params.key, ACTION_BLINK) == 0) {
-        blink_last_rate = request_params.value1;
-        SERVER_RESPONSE_OK("");
-
-      } else if (strcmp(request_params.key, ACTION_SENSE) == 0) {
-        int sensorLeftState = analogRead(SENSOR_LEFT_PIN);
-        int sensorRightState = analogRead(SENSOR_RIGHT_PIN);
-
-        sprintf(server_response_content, "[%d, %d]", sensorLeftState, sensorRightState);
-        SERVER_RESPONSE_OK(server_response_content);
-
-      } else if (strcmp(request_params.key, ACTION_MOVE) == 0 ){
-        move_servo_left.write(request_params.value1);
-        move_servo_right.write(request_params.value2);
-        SERVER_RESPONSE_OK("");
-
-      } else if (strcmp(request_params.key, ACTION_SING) == 0) {
-        tone(SPEAKER_PIN, request_params.value1, request_params.value2);
-        SERVER_RESPONSE_OK("");
-
-      } else if (strcmp(request_params.key, ACTION_SEE) == 0) {
-        digitalWrite(SEE_TRIGGER_PIN, LOW);
-        delayMicroseconds(SEE_SHORT_DELAY);
-
-        digitalWrite(SEE_TRIGGER_PIN, HIGH);
-        delayMicroseconds(SEE_LONG_DELAY);
-
-        digitalWrite(SEE_TRIGGER_PIN, LOW);
-        see_duration = (float) pulseIn(SEE_ECHO_PIN, HIGH);
-        see_distance = see_duration / SEE_INTERNET_MAGIC_NUMBER;
-
-        if (see_distance > SEE_MAX_DISTANCE) {
-            see_distance = SEE_MAX_DISTANCE;
+      switch (request_params.action) {
+        case ACTION_BLINK: {
+          blink_last_rate = request_params.value1;
+          SERVER_RESPONSE_OK("");
+          break;
         }
+        case ACTION_SENSE: {
+          int sensorLeftState = analogRead(SENSOR_LEFT_PIN);
+          int sensorRightState = analogRead(SENSOR_RIGHT_PIN);
 
-        sprintf(server_response_content, "%ld", see_distance);
-        SERVER_RESPONSE_OK(server_response_content);
+          sprintf(server_response_content, "[%d, %d]", sensorLeftState, sensorRightState);
+          SERVER_RESPONSE_OK(server_response_content);
+          break;
+        }
+        case ACTION_MOVE: {
+          move_servo_left.write(request_params.value1);
+          move_servo_right.write(request_params.value2);
 
-      } else {
-        SERVER_RESPONSE_BAD();
+          SERVER_RESPONSE_OK("");
+          break;
+        }
+        case ACTION_SING: {
+          tone(SPEAKER_PIN, request_params.value1, request_params.value2);
+
+          SERVER_RESPONSE_OK("");
+          break;
+        }
+        case ACTION_SEE: {
+          digitalWrite(SEE_TRIGGER_PIN, LOW);
+          delayMicroseconds(SEE_SHORT_DELAY);
+
+          digitalWrite(SEE_TRIGGER_PIN, HIGH);
+          delayMicroseconds(SEE_LONG_DELAY);
+
+          digitalWrite(SEE_TRIGGER_PIN, LOW);
+          see_duration = (float) pulseIn(SEE_ECHO_PIN, HIGH);
+          see_distance = see_duration / SEE_INTERNET_MAGIC_NUMBER;
+
+          if (see_distance > SEE_MAX_DISTANCE) {
+            see_distance = SEE_MAX_DISTANCE;
+          }
+
+          sprintf(server_response_content, "%ld", see_distance);
+          SERVER_RESPONSE_OK(server_response_content);
+          break;
+        }
+        default: {
+          SERVER_RESPONSE_BAD();
+        }
       }
     }
   }
