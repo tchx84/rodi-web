@@ -25,6 +25,8 @@
 #define SENSOR_RIGHT_PIN A6
 #define SENSOR_LEFT_PIN A3
 
+#define LED_PIN 13
+
 #define SERVO_RIGHT_PIN 6
 #define SERVO_LEFT_PIN 5
 #define SERVO_STOP 99
@@ -80,7 +82,7 @@ void setup()
   blink_last_state = LOW;
   blink_last_rate = 0;
   blink_last_changed = millis();
-  pinMode(13, OUTPUT);
+  pinMode(LED_PIN, OUTPUT);
   
   move_servo_left.attach(SERVO_LEFT_PIN);
   move_servo_left.write(SERVO_STOP);
