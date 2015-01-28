@@ -49,8 +49,8 @@
 #define ACTION_SEE "see"
 #define ACTION_UNKNOWN "unknown"
 
-#define SERVER_RESPONSE_OK(content) server_set_response(200, "OK", content)
-#define SERVER_RESPONSE_BAD() server_set_response(400, "Bad Request", "")
+#define SERVER_RESPONSE_OK(content) server_set_response(content)
+#define SERVER_RESPONSE_BAD() Serial.print(server_response_template_bad)
 
 struct RequestParams {
    char key[SERVER_BUFFER_SMALL];
@@ -61,14 +61,24 @@ struct RequestParams {
 int server_input_index;
 char server_input;
 char server_buffer[SERVER_BUFFER_BIG];
+
 char server_response_template[] =
-"HTTP/1.1 %d %s\n"
+"HTTP/1.1 200 OK\n"
 "Connection: close\n"
 "Content-Type: application/json\n"
 "Content-Length: %d\n"
 "Access-Control-Allow-Origin: *\n"
 "\n"
 "%s";
+
+char server_response_template_bad[] =
+"HTTP/1.1 400 Bad Request\n"
+"Connection: close\n"
+"Content-Type: application/json\n"
+"Content-Length: 0\n"
+"Access-Control-Allow-Origin: *\n"
+"\n"
+"";
 
 int blink_last_state;
 int blink_last_rate;
@@ -123,11 +133,11 @@ struct RequestParams server_get_params(char* line) {
   return request_params;
 }
 
-void server_set_response(int code, char* message, char* content) {
+void server_set_response(char* content) {
   char response[SERVER_BUFFER_BIG];
   int count = strlen(content);
   
-  sprintf(response, server_response_template, code, message, count, content);
+  sprintf(response, server_response_template, count, content);
   
   Serial.print(response);
 }
