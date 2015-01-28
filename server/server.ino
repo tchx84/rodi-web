@@ -29,7 +29,7 @@
 
 #define SERVO_RIGHT_PIN 6
 #define SERVO_LEFT_PIN 5
-#define SERVO_STOP 99
+#define SERVO_STOP 97
 
 #define SPEAKER_PIN 2
 
