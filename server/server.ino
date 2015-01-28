@@ -29,11 +29,14 @@
 #define SERVO_LEFT_PIN 5
 #define SERVO_STOP 99
 
+#define SPEAKER_PIN 2
+
 #define SERVER_BAUD 57600
 
 #define ACTION_BLINK "blink"
 #define ACTION_SENSE "sense"
 #define ACTION_MOVE "move"
+#define ACTION_SING "sing"
 #define ACTION_UNKNOWN "unknown"
 
 #define SERVER_RESPONSE_OK(content) server_set_response(200, "OK", content)
@@ -76,6 +79,8 @@ void setup()
   move_servo_right.attach(SERVO_RIGHT_PIN);
   move_servo_right.write(SERVO_STOP);
   
+  pinMode(SPEAKER_PIN, OUTPUT);
+
   server_input_index = 0;
   Serial.begin(SERVER_BAUD);
 }
@@ -169,6 +174,10 @@ void loop()
       } else if (strcmp(request_params.key, ACTION_MOVE) == 0 ){
         move_servo_left.write(request_params.value1);
         move_servo_right.write(request_params.value2);
+        SERVER_RESPONSE_OK("");
+
+      } else if (strcmp(request_params.key, ACTION_SING) == 0) {
+        tone(SPEAKER_PIN, request_params.value1, request_params.value2);
         SERVER_RESPONSE_OK("");
 
       } else {
