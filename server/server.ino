@@ -61,6 +61,7 @@ struct RequestParams {
 int server_input_index;
 char server_input;
 char server_buffer[SERVER_BUFFER_BIG];
+char server_response_content[SERVER_BUFFER_SMALL];
 
 char server_response_template[] =
 "HTTP/1.1 200 OK\n"
@@ -193,9 +194,8 @@ void loop()
         int sensorLeftState = analogRead(SENSOR_LEFT_PIN);
         int sensorRightState = analogRead(SENSOR_RIGHT_PIN);
 
-        char content[SERVER_BUFFER_SMALL];
-        sprintf(content, "[%d, %d]", sensorLeftState, sensorRightState);
-        SERVER_RESPONSE_OK(content);
+        sprintf(server_response_content, "[%d, %d]", sensorLeftState, sensorRightState);
+        SERVER_RESPONSE_OK(server_response_content);
 
       } else if (strcmp(request_params.key, ACTION_MOVE) == 0 ){
         move_servo_left.write(request_params.value1);
@@ -221,9 +221,8 @@ void loop()
             see_distance = SEE_MAX_DISTANCE;
         }
 
-        char content[SERVER_BUFFER_SMALL];
-        sprintf(content, "%ld", see_distance);
-        SERVER_RESPONSE_OK(content);
+        sprintf(server_response_content, "%ld", see_distance);
+        SERVER_RESPONSE_OK(server_response_content);
 
       } else {
         SERVER_RESPONSE_BAD();
