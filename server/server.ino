@@ -87,6 +87,9 @@ long blink_last_changed;
 Servo move_servo_left;
 Servo move_servo_right;
 
+long see_distance;
+float see_duration;
+
 void setup()
 {  
   blink_last_state = LOW;
@@ -161,28 +164,6 @@ void blink_loop(){
     }
 }
 
-long see_distance() {
-  long distance;
-  float duration;
-
-  digitalWrite(SEE_TRIGGER_PIN, LOW);
-  delayMicroseconds(SEE_SHORT_DELAY);
-
-  digitalWrite(SEE_TRIGGER_PIN, HIGH);
-  delayMicroseconds(SEE_LONG_DELAY);
-
-  digitalWrite(SEE_TRIGGER_PIN, LOW);
-  duration = (float) pulseIn(SEE_ECHO_PIN, HIGH);
-
-  distance = duration / SEE_INTERNET_MAGIC_NUMBER;
-
-  if (distance > SEE_MAX_DISTANCE) {
-    distance = SEE_MAX_DISTANCE;
-  }
-
-  return distance;
-}
-
 void loop()
 {
   if (Serial.available() > 0) {
@@ -226,8 +207,22 @@ void loop()
         SERVER_RESPONSE_OK("");
 
       } else if (strcmp(request_params.key, ACTION_SEE) == 0) {
+        digitalWrite(SEE_TRIGGER_PIN, LOW);
+        delayMicroseconds(SEE_SHORT_DELAY);
+
+        digitalWrite(SEE_TRIGGER_PIN, HIGH);
+        delayMicroseconds(SEE_LONG_DELAY);
+
+        digitalWrite(SEE_TRIGGER_PIN, LOW);
+        see_duration = (float) pulseIn(SEE_ECHO_PIN, HIGH);
+        see_distance = see_duration / SEE_INTERNET_MAGIC_NUMBER;
+
+        if (see_distance > SEE_MAX_DISTANCE) {
+            see_distance = SEE_MAX_DISTANCE;
+        }
+
         char content[SERVER_BUFFER_SMALL];
-        sprintf(content, "%ld", see_distance());
+        sprintf(content, "%ld", see_distance);
         SERVER_RESPONSE_OK(content);
 
       } else {
