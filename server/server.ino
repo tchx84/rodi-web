@@ -175,17 +175,18 @@ void loop()
   if (Serial.available() > 0) {
 
     // Do not overflow buffer
-    if (server_input_index >= SERVER_BUFFER_BIG) {
+    if (server_input_index >= SERVER_BUFFER_SMALL) {
       server_input_index = 0;
     }
 
     server_input = Serial.read();
 
-    // dirty hack
-    if (server_input == 'G') {
+    // start condition
+    if (server_input == 'G') {  
       server_input_index = 0;
     }
 
+    // end condition
     if (server_input == '\n') {
       server_buffer[server_input_index] = '\0';
       server_input_index = 0;
