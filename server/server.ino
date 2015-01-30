@@ -61,8 +61,8 @@ struct RequestParams {
 
 int server_input_index;
 char server_input;
-char server_buffer[SERVER_BUFFER_BIG];
-char server_response_content[SERVER_BUFFER_SMALL];
+char server_buffer[SERVER_BUFFER_SMALL];
+char server_response_content[SERVER_BUFFER_SMALL];  
 
 char server_response_template[] =
 "HTTP/1.1 200 OK\n"
@@ -84,6 +84,7 @@ char server_response_template_bad[] =
 
 int blink_last_state;
 int blink_last_rate;
+int blink_is_off;
 long blink_last_changed;
 
 Servo move_servo_left;
@@ -96,6 +97,7 @@ void setup()
 {  
   blink_last_state = LOW;
   blink_last_rate = 0;
+  blink_is_off = 1;
   blink_last_changed = millis();
   pinMode(LED_PIN, OUTPUT);
   
@@ -144,10 +146,15 @@ void server_set_response(char* content) {
 }
 
 void blink_loop(){
-
+    if (blink_is_off) {
+      return;
+    }
+  
     if (blink_last_rate == 0) {
       blink_last_state = LOW;
+      blink_is_off = 1;
       digitalWrite(13, blink_last_state);
+      
     } else {
       long now = millis();
       if ((now - blink_last_changed) > blink_last_rate) {
@@ -159,6 +166,7 @@ void blink_loop(){
         digitalWrite(13, blink_last_state);
         blink_last_changed = now;
       }
+      
     }
 }
 
@@ -182,8 +190,7 @@ void loop()
       server_buffer[server_input_index] = '\0';
       server_input_index = 0;
     } else {
-      server_buffer[server_input_index] = server_input;
-      server_input_index++;
+      server_buffer[server_input_index++] = server_input;
     }
 
     if (server_input == '\n' && SERVER_GOT_GET(server_buffer)) {
@@ -192,6 +199,7 @@ void loop()
       switch (request_params.action) {
         case ACTION_BLINK: {
           blink_last_rate = request_params.value1;
+          blink_is_off = 0;
           SERVER_RESPONSE_OK("");
           break;
         }
