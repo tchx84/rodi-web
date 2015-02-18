@@ -42,12 +42,12 @@
 
 #define SERVER_BAUD 57600
 
-#define ACTION_BLINK 0
-#define ACTION_SENSE 1
-#define ACTION_MOVE 2
-#define ACTION_SING 3
-#define ACTION_SEE 4
-#define ACTION_UNKNOWN -1
+#define ACTION_UNKNOWN 0
+#define ACTION_BLINK 1
+#define ACTION_SENSE 2
+#define ACTION_MOVE 3
+#define ACTION_SING 4
+#define ACTION_SEE 5
 
 #define SERVER_RESPONSE_OK(content) server_set_response(content)
 #define SERVER_RESPONSE_BAD() Serial.print(server_response_template_bad)
