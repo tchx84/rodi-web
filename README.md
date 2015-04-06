@@ -36,19 +36,20 @@ API
 * Move
 
     ```
-    GET /3/<left-orientation>/<right-orientation>/
+    GET /3/<left-wheel-speed[-100:100]/<right-wheel-speed[-100:100]>/
     ```
 
     ie.,
     ```
-    $curl --get http://192.168.4.1:1234/3/94/94/   // stop
-    $curl --get http://192.168.4.1:1234/3/0/0/     // turn right
-    $curl --get http://192.168.4.1:1234/3/180/180/ // turn left
-    $curl --get http://192.168.4.1:1234/3/0/180/   // forward
-    $curl --get http://192.168.4.1:1234/3/180/0/   // backward
+    $curl --get http://192.168.4.1:1234/3/0/0/          // stop
+    $curl --get http://192.168.4.1:1234/3/100/-100/     // turn right
+    $curl --get http://192.168.4.1:1234/3/-100/100/     // turn left
+    $curl --get http://192.168.4.1:1234/3/100/100/      // forward
+    $curl --get http://192.168.4.1:1234/3/-100/-100/    // backward
     ```
 
-    As in Arduino's ServoWrite http://arduino.cc/en/Reference/ServoWrite
+    100 moves wheel forward at full speed
+    -100 moves wheel backward at full speed
 
 * Sing
 
