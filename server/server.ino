@@ -29,7 +29,7 @@
 
 #define SERVO_RIGHT_PIN 6
 #define SERVO_LEFT_PIN 5
-#define SERVO_STOP 97
+#define SERVO_STOP 0
 
 #define SPEAKER_PIN 2
 
@@ -62,7 +62,7 @@ struct RequestParams {
 int server_input_index;
 char server_input;
 char server_buffer[SERVER_BUFFER_SMALL];
-char server_response_content[SERVER_BUFFER_SMALL];  
+char server_response_content[SERVER_BUFFER_SMALL];
 
 char server_response_template[] =
 "HTTP/1.1 200 OK\n"
@@ -89,23 +89,22 @@ long blink_last_changed;
 
 Servo move_servo_left;
 Servo move_servo_right;
+bool servo_left_attached;
+bool servo_right_attached;
 
 long see_distance;
 float see_duration;
 
 void setup()
-{  
+{
   blink_last_state = LOW;
   blink_last_rate = 0;
   blink_is_off = 1;
   blink_last_changed = millis();
+  servo_left_attached = false;
+  servo_right_attached = false;
   pinMode(LED_PIN, OUTPUT);
-  
-  move_servo_left.attach(SERVO_LEFT_PIN);
-  move_servo_left.write(SERVO_STOP);
-  move_servo_right.attach(SERVO_RIGHT_PIN);
-  move_servo_right.write(SERVO_STOP);
-  
+
   pinMode(SPEAKER_PIN, OUTPUT);
 
   pinMode(SEE_TRIGGER_PIN, OUTPUT);
@@ -139,9 +138,9 @@ struct RequestParams server_get_params(char* line) {
 void server_set_response(char* content) {
   char response[SERVER_BUFFER_BIG];
   int count = strlen(content);
-  
+
   sprintf(response, server_response_template, count, content);
-  
+
   Serial.print(response);
 }
 
@@ -149,12 +148,12 @@ void blink_loop(){
     if (blink_is_off) {
       return;
     }
-  
+
     if (blink_last_rate == 0) {
       blink_last_state = LOW;
       blink_is_off = 1;
       digitalWrite(13, blink_last_state);
-      
+
     } else {
       long now = millis();
       if ((now - blink_last_changed) > blink_last_rate) {
@@ -166,7 +165,7 @@ void blink_loop(){
         digitalWrite(13, blink_last_state);
         blink_last_changed = now;
       }
-      
+
     }
 }
 
@@ -182,7 +181,7 @@ void loop()
     server_input = Serial.read();
 
     // start condition
-    if (server_input == 'G') {  
+    if (server_input == 'G') {
       server_input_index = 0;
     }
 
@@ -213,8 +212,29 @@ void loop()
           break;
         }
         case ACTION_MOVE: {
-          move_servo_left.write(request_params.value1);
-          move_servo_right.write(request_params.value2);
+          if(request_params.value1 == SERVO_STOP){
+            move_servo_left.detach();
+            servo_left_attached = false;
+          }else{
+            if(!servo_left_attached){
+              move_servo_left.attach(SERVO_LEFT_PIN);
+              servo_left_attached = true;
+            }
+            int tmp = map(request_params.value1, 100, -100, 0, 180);
+            move_servo_left.write(constrain(tmp, 0, 180));
+          }
+
+          if(request_params.value2 == SERVO_STOP){
+            move_servo_right.detach();
+            servo_right_attached = false;
+          }else{
+            if(!servo_right_attached){
+              move_servo_right.attach(SERVO_RIGHT_PIN);
+              servo_right_attached = true;
+            }
+            int tmp = map(request_params.value2, -100, 100, 0, 180);
+            move_servo_right.write(constrain(tmp, 0, 180));
+          }
 
           SERVER_RESPONSE_OK("");
           break;
