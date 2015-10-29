@@ -236,7 +236,7 @@ void loop()
               move_servo_left.attach(SERVO_LEFT_PIN);
               servo_left_attached = true;
             }
-            int tmp = map(request_params.value1, 100, -100, 0, 180);
+            int tmp = map(request_params.value1, -100, 100, 0, 180);
             move_servo_left.write(constrain(tmp, 0, 180));
           }
 
@@ -248,7 +248,7 @@ void loop()
               move_servo_right.attach(SERVO_RIGHT_PIN);
               servo_right_attached = true;
             }
-            int tmp = map(request_params.value2, -100, 100, 0, 180);
+            int tmp = map(request_params.value2, 100, -100, 0, 180);
             move_servo_right.write(constrain(tmp, 0, 180));
           }
 
