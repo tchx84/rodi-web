@@ -18,23 +18,26 @@
  */
 
 #include <Servo.h>
+#include <Adafruit_NeoPixel.h>
 
 #define SERVER_BUFFER_BIG 256
 #define SERVER_BUFFER_SMALL 32
 
 #define SENSOR_RIGHT_PIN A6
-#define SENSOR_LEFT_PIN A3
+#define SENSOR_LEFT_PIN A1
+#define SENSOR_LIGHT_PIN A7
 
 #define LED_PIN 13
+#define PIXEL_PIN 11
 
-#define SERVO_RIGHT_PIN 6
-#define SERVO_LEFT_PIN 5
+#define SERVO_RIGHT_PIN 5
+#define SERVO_LEFT_PIN 4
 #define SERVO_STOP 0
 
-#define SPEAKER_PIN 2
+#define SPEAKER_PIN 7
 
 #define SEE_ECHO_PIN A0
-#define SEE_TRIGGER_PIN A2
+#define SEE_TRIGGER_PIN 12
 #define SEE_SHORT_DELAY 2
 #define SEE_LONG_DELAY 10
 #define SEE_MAX_DISTANCE 100
@@ -48,6 +51,9 @@
 #define ACTION_MOVE 3
 #define ACTION_SING 4
 #define ACTION_SEE 5
+#define ACTION_PIXEL 6
+#define ACTION_SENSE_LIGHT 7
+#define ACTION_LED 8
 
 #define SERVER_RESPONSE_OK(content) server_set_response(content)
 #define SERVER_RESPONSE_BAD() Serial.print(server_response_template_bad)
@@ -57,6 +63,7 @@ struct RequestParams {
    int action;
    int value1;
    int value2;
+   int value3;
 };
 
 int server_input_index;
@@ -86,6 +93,7 @@ int blink_last_state;
 int blink_last_rate;
 int blink_is_off;
 long blink_last_changed;
+Adafruit_NeoPixel pixel = Adafruit_NeoPixel(1, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
 Servo move_servo_left;
 Servo move_servo_right;
@@ -110,6 +118,10 @@ void setup()
   pinMode(SEE_TRIGGER_PIN, OUTPUT);
   pinMode(SEE_ECHO_PIN, INPUT);
 
+  pixel.begin();
+  pixel.setPixelColor(0, pixel.Color(0,0,0));
+  pixel.show();
+
   server_input_index = 0;
   Serial.begin(SERVER_BAUD);
 }
@@ -118,18 +130,21 @@ struct RequestParams server_get_params(char* line) {
   char taction[SERVER_BUFFER_SMALL];
   char tvalue1[SERVER_BUFFER_SMALL];
   char tvalue2[SERVER_BUFFER_SMALL];
+  char tvalue3[SERVER_BUFFER_SMALL];
 
   struct RequestParams request_params;
   request_params.action = -1;
   request_params.value1 = -1;
   request_params.value2 = -1;
+  request_params.value3 = -1;
 
-  int filled = sscanf(line, "%*[^/]%*c%[^/]%*c%[^/]%*c%[^/]", taction, tvalue1, tvalue2);
+  int filled = sscanf(line, "%*[^/]%*c%[^/]%*c%[^/]%*c%[^/]%*c%[^/]", taction, tvalue1, tvalue2, tvalue3);
 
   if (filled != EOF) {
     request_params.action = atoi(taction);
     request_params.value1 = atoi(tvalue1);
     request_params.value2 = atoi(tvalue2);
+    request_params.value3 = atoi(tvalue3);
   }
 
   return request_params;
@@ -262,6 +277,24 @@ void loop()
 
           sprintf(server_response_content, "%ld", see_distance);
           SERVER_RESPONSE_OK(server_response_content);
+          break;
+        }
+        case ACTION_PIXEL: {
+          pixel.setPixelColor(0, pixel.Color(request_params.value1,request_params.value2,request_params.value3));
+          pixel.show();
+          SERVER_RESPONSE_OK("");
+          break;
+        }
+        case ACTION_SENSE_LIGHT: {
+          int sensorLightState = analogRead(SENSOR_LIGHT_PIN);
+
+          sprintf(server_response_content, "%d", sensorLightState);
+          SERVER_RESPONSE_OK(server_response_content);
+          break;
+        }
+        case ACTION_LED: {
+          digitalWrite(LED_PIN, request_params.value1);
+          SERVER_RESPONSE_OK("");
           break;
         }
         default: {

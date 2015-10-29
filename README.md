@@ -36,7 +36,7 @@ API
 * Move
 
     ```
-    GET /3/<left-wheel-speed[-100:100]/<right-wheel-speed[-100:100]>/
+    GET /3/<left-wheel-speed[-100:100]>/<right-wheel-speed[-100:100]>/
     ```
 
     ie.,
@@ -78,9 +78,55 @@ API
     13
     ```
 
+* Pixel
+
+    ```
+    GET /6/<red>/<green>/<blue>
+    ```
+
+    Set the color of the onboard RGB led (pixel)
+
+    ie.,
+    ```
+    $curl --get http://192.168.4.1:1234/6/0/0/0/        // off
+    $curl --get http://192.168.4.1:1234/6/255/0/0/      // red
+    $curl --get http://192.168.4.1:1234/6/0/255/0/      // green
+    $curl --get http://192.168.4.1:1234/6/0/0/255/      // blue
+    $curl --get http://192.168.4.1:1234/6/255/255/255/  // white
+    ```
+
+* Sense Light
+
+    ```
+    GET /7/
+    ```
+
+    Returns a JSON formatted integer, for the light intensity level (0 - 1023).
+
+    ie.,
+    ```
+    $curl --get http://192.168.4.1:1234/7/
+    66
+    ```
+
+* Led
+
+    ```
+    GET /8/<state[0|1]>
+    ```
+
+    Turns the onboard led on or off.
+
+    ie.,
+    ```
+    curl --get http://192.168.4.1:1234/9/0/    // turns the onboard led off
+    curl --get http://192.168.4.1:1234/9/1/    // turns the onbboard led on
+    ```
+
 Authors
 ----------
 * Martin Abente Lahaye - tch@sugarlabs.org
+* Gary Servin - garyservin@gmail.com
 
 Cool Stuff
 -------------------
