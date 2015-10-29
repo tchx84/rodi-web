@@ -119,8 +119,8 @@ API
 
     ie.,
     ```
-    curl --get http://192.168.4.1:1234/9/0/    // turns the onboard led off
-    curl --get http://192.168.4.1:1234/9/1/    // turns the onbboard led on
+    curl --get http://192.168.4.1:1234/8/0/    // turns the onboard led off
+    curl --get http://192.168.4.1:1234/8/1/    // turns the onbboard led on
     ```
 
 Authors
