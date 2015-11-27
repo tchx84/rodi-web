@@ -126,7 +126,7 @@ void setup()
   Serial.begin(SERVER_BAUD);
 }
 
-struct RequestParams server_get_params(char* line) {
+RequestParams server_get_params(char* line) {
   char taction[SERVER_BUFFER_SMALL];
   char tvalue1[SERVER_BUFFER_SMALL];
   char tvalue2[SERVER_BUFFER_SMALL];
