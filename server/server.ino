@@ -20,6 +20,11 @@
 #include <Servo.h>
 #include <Adafruit_NeoPixel.h>
 
+// IMU
+#include <I2Cdev.h>
+#include <MPU6050.h>
+#include <Wire.h>
+
 #define SERVER_BUFFER_BIG 256
 #define SERVER_BUFFER_SMALL 32
 
@@ -54,6 +59,7 @@
 #define ACTION_PIXEL 6
 #define ACTION_SENSE_LIGHT 7
 #define ACTION_LED 8
+#define ACTION_IMU 9
 
 #define SERVER_RESPONSE_OK(content) server_set_response(content)
 #define SERVER_RESPONSE_BAD() Serial.print(server_response_template_bad)
@@ -103,6 +109,12 @@ bool servo_right_attached;
 long see_distance;
 float see_duration;
 
+MPU6050 accelgyro;
+int16_t ax, ay, az;
+int16_t gx, gy, gz;
+int16_t temperature;
+char enable_imu = 0;
+
 void setup()
 {
   blink_last_state = LOW;
@@ -112,15 +124,19 @@ void setup()
   servo_left_attached = false;
   servo_right_attached = false;
   pinMode(LED_PIN, OUTPUT);
-
   pinMode(SPEAKER_PIN, OUTPUT);
-
   pinMode(SEE_TRIGGER_PIN, OUTPUT);
   pinMode(SEE_ECHO_PIN, INPUT);
 
+  // Pixel
   pixel.begin();
   pixel.setPixelColor(0, pixel.Color(0,0,0));
   pixel.show();
+
+  // IMU
+  Wire.begin();
+  accelgyro.initialize();
+  enable_imu = accelgyro.testConnection() ? 1 : 0;
 
   server_input_index = 0;
   Serial.begin(SERVER_BAUD);
@@ -295,6 +311,17 @@ void loop()
         case ACTION_LED: {
           digitalWrite(LED_PIN, request_params.value1);
           SERVER_RESPONSE_OK("");
+          break;
+        }
+        case ACTION_IMU: {
+          if(enable_imu){
+            accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+            temperature = accelgyro.getTemperature() / 34.00 + 365.3; // Magic numbre from datasheet (result in degrees C * 10 to avoid float)
+          }else{
+            temperature = ax = ay = az = gx = gy = gz = 0;
+          }
+          sprintf(server_response_content, "[%d, %d, %d, %d, %d, %d, %d]", ax, ay, ax, gx, gy, gz, temperature);
+          SERVER_RESPONSE_OK(server_response_content);
           break;
         }
         default: {
