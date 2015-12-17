@@ -123,6 +123,29 @@ API
     curl --get http://192.168.4.1:1234/8/1/    // turns the onbboard led on
     ```
 
+* IMU
+
+    ```
+    GET /9/
+    ```
+
+    Returns a JSON formatted array of seven integers, for IMU sensor values.
+
+    All values are from in the range [-32768:32767]:
+        - X-axis acceleration (~16384 = 1g)
+        - Y-axis acceleration (~16384 = 1g)
+        - Z-axis acceleration (~16384 = 1g)
+        - X-axis angular velocity
+        - Y-axis angular velocity
+        - Z-axis angular velocity
+        - Temperature       (degrees C * 10)
+
+    ie.,
+    ```
+    $curl --get http://192.168.4.1:1234/9/
+    [-268, 8, -268, -371, -449, -51, 284]
+    ```
+
 Authors
 ----------
 * Martin Abente Lahaye - tch@sugarlabs.org
